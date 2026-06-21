@@ -41,7 +41,7 @@ jobs:
           Compress-Archive -Path package\* -DestinationPath Codex-Migrate-Windows-x64.zip
           (Get-FileHash Codex-Migrate-Windows-x64.zip -Algorithm SHA256).Hash.ToLower() + "  Codex-Migrate-Windows-x64.zip" |
             Out-File -Encoding ascii Codex-Migrate-Windows-x64.zip.sha256
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: release-windows-x64
           path: |
@@ -74,7 +74,7 @@ jobs:
         run: |
           ditto -c -k --sequesterRsrc --keepParent "dist/Codex Migrate.app" "${{ matrix.archive }}"
           shasum -a 256 "${{ matrix.archive }}" > "${{ matrix.archive }}.sha256"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: release-${{ matrix.target }}
           path: |
@@ -110,7 +110,7 @@ jobs:
           cp LICENSE package/
           tar -C package -czf "${{ matrix.archive }}" .
           sha256sum "${{ matrix.archive }}" > "${{ matrix.archive }}.sha256"
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: release-${{ matrix.target }}
           path: |
