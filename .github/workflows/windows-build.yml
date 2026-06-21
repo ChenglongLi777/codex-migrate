@@ -1,0 +1,35 @@
+name: Build Windows EXE
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: x86_64-pc-windows-msvc
+      - name: Build
+        run: cargo build --release --features gui --bins --target x86_64-pc-windows-msvc
+      - name: Package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist
+          Copy-Item target\x86_64-pc-windows-msvc\release\codex-migrate-gui.exe "dist\Codex Migrate.exe"
+          Copy-Item target\x86_64-pc-windows-msvc\release\codex-migrate.exe "dist\codex-migrate-cli.exe"
+          Copy-Item LICENSE dist\LICENSE.txt
+          Compress-Archive -Path dist\* -DestinationPath Codex-Migrate-Windows-x64.zip
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Codex-Migrate-Windows-x64
+          path: Codex-Migrate-Windows-x64.zip
+          retention-days: 30
+

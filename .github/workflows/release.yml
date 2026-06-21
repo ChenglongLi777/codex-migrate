@@ -1,0 +1,136 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  validate-version:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Match tag to Cargo version
+        shell: bash
+        run: |
+          VERSION=$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n 1)
+          test "v$VERSION" = "$GITHUB_REF_NAME"
+
+  windows:
+    needs: validate-version
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-pc-windows-msvc
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: release-windows-x64
+      - run: cargo build --release --features gui --bins --target x86_64-pc-windows-msvc
+      - name: Package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force package
+          Copy-Item target\x86_64-pc-windows-msvc\release\codex-migrate-gui.exe "package\Codex Migrate.exe"
+          Copy-Item target\x86_64-pc-windows-msvc\release\codex-migrate.exe "package\codex-migrate-cli.exe"
+          Copy-Item LICENSE package\LICENSE.txt
+          Compress-Archive -Path package\* -DestinationPath Codex-Migrate-Windows-x64.zip
+          (Get-FileHash Codex-Migrate-Windows-x64.zip -Algorithm SHA256).Hash.ToLower() + "  Codex-Migrate-Windows-x64.zip" |
+            Out-File -Encoding ascii Codex-Migrate-Windows-x64.zip.sha256
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-windows-x64
+          path: |
+            Codex-Migrate-Windows-x64.zip
+            Codex-Migrate-Windows-x64.zip.sha256
+
+  macos:
+    needs: validate-version
+    strategy:
+      matrix:
+        include:
+          - runner: macos-13
+            target: x86_64-apple-darwin
+            archive: Codex-Migrate-macOS-x64.zip
+          - runner: macos-14
+            target: aarch64-apple-darwin
+            archive: Codex-Migrate-macOS-arm64.zip
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: release-${{ matrix.target }}
+      - run: cargo build --release --features gui --bins --target ${{ matrix.target }}
+      - run: ./scripts/package-macos.sh ${{ matrix.target }}
+      - name: Package
+        run: |
+          ditto -c -k --sequesterRsrc --keepParent "dist/Codex Migrate.app" "${{ matrix.archive }}"
+          shasum -a 256 "${{ matrix.archive }}" > "${{ matrix.archive }}.sha256"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.target }}
+          path: |
+            ${{ matrix.archive }}
+            ${{ matrix.archive }}.sha256
+
+  linux:
+    needs: validate-version
+    strategy:
+      matrix:
+        include:
+          - runner: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            archive: Codex-Migrate-Linux-x64.tar.gz
+          - runner: ubuntu-24.04-arm
+            target: aarch64-unknown-linux-gnu
+            archive: Codex-Migrate-Linux-arm64.tar.gz
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: release-${{ matrix.target }}
+      - run: cargo build --release --features gui --bins --target ${{ matrix.target }}
+      - name: Package
+        run: |
+          mkdir -p package
+          cp "target/${{ matrix.target }}/release/codex-migrate-gui" package/
+          cp "target/${{ matrix.target }}/release/codex-migrate" package/
+          cp LICENSE package/
+          tar -C package -czf "${{ matrix.archive }}" .
+          sha256sum "${{ matrix.archive }}" > "${{ matrix.archive }}.sha256"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-${{ matrix.target }}
+          path: |
+            ${{ matrix.archive }}
+            ${{ matrix.archive }}.sha256
+
+  publish:
+    needs: [windows, macos, linux]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v5
+        with:
+          pattern: release-*
+          path: artifacts
+          merge-multiple: true
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" artifacts/* \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes

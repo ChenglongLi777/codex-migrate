@@ -1,0 +1,59 @@
+name: Bug report
+description: Report a reproducible migration, repair, export, or interface problem
+title: "[Bug]: "
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not upload a complete `.codex` directory, database, authentication file, private conversation, or unredacted HTML export.
+  - type: input
+    id: version
+    attributes:
+      label: Codex Migrate version
+      placeholder: "1.0.6"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating system
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - WSL
+    validations:
+      required: true
+  - type: input
+    id: codex-version
+    attributes:
+      label: Codex version
+      description: If known.
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps
+      description: Use redacted example paths and data.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: checkboxes
+    id: privacy
+    attributes:
+      label: Privacy confirmation
+      options:
+        - label: I removed conversations, credentials, usernames, and private paths.
+          required: true
+
