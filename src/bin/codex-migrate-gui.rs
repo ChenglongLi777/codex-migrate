@@ -3449,7 +3449,10 @@ mod tests {
             "/old/projects",
             root.path().to_string_lossy().as_ref(),
         );
-        assert_eq!(projects[0].target_path, project_path.to_string_lossy());
+        assert_eq!(
+            normalize(&projects[0].target_path),
+            normalize(project_path.to_string_lossy().as_ref())
+        );
     }
 
     #[test]
