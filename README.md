@@ -40,6 +40,7 @@ Codex Migrate works directly with a copied `.codex/` directory or a minimal `Cod
     <td align="center">Migration and maintenance tools</td>
   </tr>
 </table>
+
 ## Features
 
 - Migrate active and archived sessions across macOS, Windows, Linux, and WSL.
