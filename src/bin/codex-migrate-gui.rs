@@ -28,6 +28,9 @@ const SURFACE: Color32 = Color32::from_rgb(255, 255, 253);
 const BACKGROUND: Color32 = Color32::from_rgb(246, 247, 244);
 const WARNING: Color32 = Color32::from_rgb(159, 101, 38);
 const DANGER: Color32 = Color32::from_rgb(174, 65, 58);
+#[cfg(target_os = "windows")]
+const OPTICAL_TEXT_OFFSET_Y: f32 = 0.0;
+#[cfg(not(target_os = "windows"))]
 const OPTICAL_TEXT_OFFSET_Y: f32 = 3.0;
 
 #[derive(Clone, Copy)]

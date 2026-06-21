@@ -11,7 +11,7 @@ body:
     id: version
     attributes:
       label: Codex Migrate version
-      placeholder: "1.0.6"
+      placeholder: "1.0.7"
     validations:
       required: true
   - type: dropdown
@@ -56,4 +56,3 @@ body:
       options:
         - label: I removed conversations, credentials, usernames, and private paths.
           required: true
-

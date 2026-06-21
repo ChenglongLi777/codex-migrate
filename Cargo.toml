@@ -1,6 +1,6 @@
 [package]
 name = "codex-migrate"
-version = "1.0.6"
+version = "1.0.7"
 edition = "2021"
 description = "Cross-platform migration and repair tool for local Codex sessions"
 license = "MIT"

@@ -43,8 +43,8 @@ Before pushing:
 The release workflow starts when a tag beginning with `v` is pushed:
 
 ```bash
-git tag v1.0.6
-git push origin v1.0.6
+git tag v1.0.7
+git push origin v1.0.7
 ```
 
 The tag version must match the version in `Cargo.toml`. GitHub Actions will build platform archives, generate SHA-256 checksum files, and attach them to a GitHub Release.
