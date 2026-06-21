@@ -1,4 +1,5 @@
 use assert_cmd::Command;
+use codex_migrate::path_mapper::normalize;
 use rusqlite::Connection;
 use serde_json::json;
 use std::fs;
@@ -44,7 +45,7 @@ fn exports_scans_and_dry_runs_directory_backup() {
     create_empty_state_db(target.path());
     let mapped_root = target.path().join("projects");
     let mapping = format!("/old/project={}", mapped_root.display());
-    Command::cargo_bin("codex-migrate")
+    let output = Command::cargo_bin("codex-migrate")
         .unwrap()
         .args([
             "import",
@@ -55,12 +56,19 @@ fn exports_scans_and_dry_runs_directory_backup() {
             "--map",
             &mapping,
         ])
-        .assert()
-        .success()
-        .stdout(predicates::str::contains("\"action\": \"import\""))
-        .stdout(predicates::str::contains(
-            mapped_root.join("demo").to_string_lossy().as_ref(),
-        ));
+        .output()
+        .unwrap();
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let plan: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(plan["threads"][0]["action"], "import");
+    assert_eq!(
+        normalize(plan["threads"][0]["mapped_cwd"].as_str().unwrap()),
+        normalize(mapped_root.join("demo").to_string_lossy().as_ref())
+    );
 }
 
 #[test]
@@ -165,7 +173,10 @@ fn imports_selected_thread_with_sqlite_fallback_and_rolls_back() {
             |row| Ok((row.get(0)?, row.get(1)?)),
         )
         .unwrap();
-    assert_eq!(cwd, mapped_root.join("demo").to_string_lossy());
+    assert_eq!(
+        normalize(&cwd),
+        normalize(mapped_root.join("demo").to_string_lossy().as_ref())
+    );
     assert!(Path::new(&rollout).is_file());
     let excluded_count: i64 = db
         .query_row(
@@ -299,20 +310,27 @@ fn repeated_import_repairs_visibility_and_registers_project() {
             .unwrap();
         assert_eq!(preview, "hello");
         assert_eq!(thread_source, "user");
-        assert_eq!(cwd, mapped_project.to_string_lossy());
+        assert_eq!(
+            normalize(&cwd),
+            normalize(mapped_project.to_string_lossy().as_ref())
+        );
         drop(db);
         let state: serde_json::Value = serde_json::from_slice(
             &fs::read(target.path().join(".codex-global-state.json")).unwrap(),
         )
         .unwrap();
         let current_projects = state["electron-saved-workspace-roots"].as_array().unwrap();
-        assert!(current_projects
-            .iter()
-            .any(|value| value.as_str() == Some(mapped_project.to_string_lossy().as_ref())));
+        assert!(current_projects.iter().any(|value| value
+            .as_str()
+            .is_some_and(
+                |path| normalize(path) == normalize(mapped_project.to_string_lossy().as_ref())
+            )));
         let current_order = state["project-order"].as_array().unwrap();
-        assert!(current_order
-            .iter()
-            .any(|value| value.as_str() == Some(mapped_project.to_string_lossy().as_ref())));
+        assert!(current_order.iter().any(|value| value
+            .as_str()
+            .is_some_and(
+                |path| normalize(path) == normalize(mapped_project.to_string_lossy().as_ref())
+            )));
         let session_index = fs::read_to_string(target.path().join("session_index.jsonl")).unwrap();
         let imported_index_entry = session_index
             .lines()
@@ -330,14 +348,22 @@ fn repeated_import_repairs_visibility_and_registers_project() {
                 .join(format!("rollout-2026-06-19T12-00-00-{id}.jsonl")),
         )
         .unwrap();
-        assert!(rollout.contains(&format!("\"cwd\":\"{}\"", mapped_project.to_string_lossy())));
+        let rollout_cwd = rollout
+            .lines()
+            .filter_map(|line| serde_json::from_str::<serde_json::Value>(line).ok())
+            .find_map(|value| value["payload"]["cwd"].as_str().map(str::to_owned))
+            .unwrap();
+        assert_eq!(
+            normalize(&rollout_cwd),
+            normalize(mapped_project.to_string_lossy().as_ref())
+        );
         assert!(!rollout.contains("\"cwd\":\"/old/project/demo\""));
         let projects = state["electron-persisted-atom-state"]["electron-saved-workspace-roots"]
             .as_array()
             .unwrap();
-        assert!(projects
-            .iter()
-            .any(|value| value.as_str() == Some(mapped_project.to_string_lossy().as_ref())));
+        assert!(projects.iter().any(|value| value.as_str().is_some_and(
+            |path| normalize(path) == normalize(mapped_project.to_string_lossy().as_ref())
+        )));
         if attempt == 0 {
             let db = Connection::open(target.path().join("state_5.sqlite")).unwrap();
             db.execute(

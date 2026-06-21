@@ -3,6 +3,7 @@ use crate::model::DiagnosticReport;
 use crate::{scanner, session_index, sqlite_adapter};
 use anyhow::{Context, Result};
 use std::collections::HashSet;
+use std::path::Path;
 use std::process::Command;
 
 pub fn diagnose(environment: &Environment) -> Result<DiagnosticReport> {
@@ -43,7 +44,10 @@ pub fn diagnose(environment: &Environment) -> Result<DiagnosticReport> {
     if let Some(state_db) = environment.state_db.as_deref() {
         for thread in &threads {
             let indexed = sqlite_adapter::thread_rollout_path(state_db, &thread.record.id)?;
-            if indexed.as_deref() != Some(thread.source_path.to_string_lossy().as_ref()) {
+            if indexed
+                .as_deref()
+                .is_none_or(|path| Path::new(path) != thread.source_path)
+            {
                 issues.push(format!(
                     "thread {} rollout path is missing or stale",
                     thread.record.id
