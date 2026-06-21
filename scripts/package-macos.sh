@@ -62,4 +62,17 @@ sed -i.bak \
   "$APP/Contents/Info.plist"
 rm -f "$APP/Contents/Info.plist.bak"
 chmod +x "$MACOS/codex-migrate-gui"
+
+# Rust's linker adds an ad-hoc signature to the Mach-O executable. Once the
+# executable is placed in an app bundle with resources, that executable-only
+# signature is no longer valid for the bundle. Sign the completed bundle so
+# Gatekeeper does not report it as damaged.
+SIGN_IDENTITY=${CODE_SIGN_IDENTITY:--}
+if [ "$SIGN_IDENTITY" = "-" ]; then
+  codesign --force --deep --sign - "$APP"
+else
+  codesign --force --deep --options runtime --timestamp --sign "$SIGN_IDENTITY" "$APP"
+fi
+codesign --verify --deep --strict --verbose=2 "$APP"
+
 echo "Created $APP"

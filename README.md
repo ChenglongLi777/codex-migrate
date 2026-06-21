@@ -74,10 +74,14 @@ It intentionally excludes authentication, Skills, configuration, plugins, logs, 
 Download a build for your platform from the repository’s **Releases** page.
 
 - Windows: extract the ZIP and run `Codex Migrate.exe`.
-- macOS: extract the ZIP and move `Codex Migrate.app` to Applications.
+- macOS: extract the ZIP and move `Codex Migrate.app` to Applications. On first
+  launch, Control-click the app and choose **Open**. If macOS still blocks it,
+  use **System Settings → Privacy & Security → Open Anyway**.
 - Linux: extract the archive and run `codex-migrate-gui`.
 
-Release builds are currently unsigned. Windows SmartScreen or macOS Gatekeeper may show a warning. Always verify the release checksum before running a downloaded binary.
+Release builds are not currently signed with commercial certificates or
+notarized by Apple. Windows SmartScreen or macOS Gatekeeper may show a warning.
+Always verify the release checksum before running a downloaded binary.
 
 ## Build from source
 

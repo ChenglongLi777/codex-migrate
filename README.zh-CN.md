@@ -74,10 +74,14 @@ Codex/
 在 GitHub 仓库的 **Releases** 页面下载对应平台版本：
 
 - Windows：解压 ZIP，运行 `Codex Migrate.exe`。
-- macOS：解压 ZIP，将 `Codex Migrate.app` 移入“应用程序”。
+- macOS：解压 ZIP，将 `Codex Migrate.app` 移入“应用程序”。首次启动时按住
+  Control 点击应用并选择“打开”；如果仍被阻止，请前往“系统设置 → 隐私与安全性”
+  点击“仍要打开”。
 - Linux：解压压缩包，运行 `codex-migrate-gui`。
 
-当前发布包没有商业代码签名。Windows SmartScreen 或 macOS Gatekeeper 可能显示提示。运行下载程序前请核对 Release 中的 SHA-256 校验文件。
+当前发布包没有使用商业代码签名证书，也未经过 Apple 公证。Windows SmartScreen
+或 macOS Gatekeeper 可能显示提示。运行下载程序前请核对 Release 中的 SHA-256
+校验文件。
 
 ## 从源码构建
 
