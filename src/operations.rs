@@ -16,11 +16,11 @@ use crate::transaction::{self, ImportTransaction};
 use crate::validator;
 use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
+use walkdir::WalkDir;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExportSummary {
@@ -126,68 +126,133 @@ pub fn export_directory(
     mut progress: impl FnMut(String),
 ) -> Result<ExportSummary> {
     let source_root = resolve_codex_root(source)?;
-    let state_db = discovery::find_state_db(&source_root)?;
-    progress(format!("Scanning {}", source_root.display()));
-    let threads = scanner::scan_codex_home(&source_root, state_db.as_deref())?;
-    if threads.is_empty() {
+    discovery::ensure_codex_stopped(&source_root)?;
+    fs::create_dir_all(output_parent)?;
+
+    let source_canonical = source_root.canonicalize()?;
+    let output_parent_canonical = output_parent.canonicalize()?;
+    if output_parent_canonical.starts_with(&source_canonical) {
         return Err(anyhow!(
-            "no rollout files found in {}",
+            "backup destination {} cannot be inside source {}",
+            output_parent.display(),
             source_root.display()
         ));
     }
-    let output = output_parent.join("Codex");
-    if output.exists() && fs::read_dir(&output)?.next().is_some() {
+
+    let output = output_parent.join(".codex");
+    if output.exists() {
         return Err(anyhow!(
-            "{} already exists and is not empty",
+            "{} already exists; choose another parent folder or remove the existing backup",
             output.display()
         ));
     }
-    fs::create_dir_all(&output)?;
-    for (index, thread) in threads.iter().enumerate() {
-        progress(format!(
-            "Copying session {} of {}",
-            index + 1,
-            threads.len()
-        ));
-        let destination = output.join(&thread.record.archive_path);
+
+    let staging = output_parent.join(format!(
+        ".codex.exporting-{}",
+        uuid::Uuid::new_v4().simple()
+    ));
+    progress(format!(
+        "Copying all contents from {}",
+        source_root.display()
+    ));
+    let copy_result = copy_codex_home(&source_root, &staging, &mut progress);
+    let (file_count, thread_count) = match copy_result {
+        Ok(summary) => summary,
+        Err(error) => {
+            let _ = fs::remove_dir_all(&staging);
+            return Err(error);
+        }
+    };
+    if let Err(error) = fs::rename(&staging, &output) {
+        let _ = fs::remove_dir_all(&staging);
+        return Err(error.into());
+    }
+    progress(format!("Created {}", output.display()));
+    progress(format!("Copied {file_count} files"));
+    Ok(ExportSummary {
+        output: output.to_string_lossy().into_owned(),
+        thread_count,
+    })
+}
+
+fn copy_codex_home(
+    source_root: &Path,
+    destination_root: &Path,
+    progress: &mut impl FnMut(String),
+) -> Result<(usize, usize)> {
+    fs::create_dir_all(destination_root)?;
+    let mut file_count = 0;
+    let mut thread_count = 0;
+
+    for entry in WalkDir::new(source_root).follow_links(false) {
+        let entry = entry?;
+        let relative = entry.path().strip_prefix(source_root)?;
+        if relative.as_os_str().is_empty() {
+            continue;
+        }
+        if is_login_credential_path(relative) {
+            continue;
+        }
+        let destination = destination_root.join(relative);
+        if entry.file_type().is_dir() {
+            fs::create_dir_all(&destination)?;
+            continue;
+        }
         if let Some(parent) = destination.parent() {
             fs::create_dir_all(parent)?;
         }
-        fs::copy(&thread.source_path, destination)?;
+        if entry.file_type().is_symlink() {
+            copy_symlink(entry.path(), &destination)?;
+        } else if entry.file_type().is_file() {
+            fs::copy(entry.path(), &destination)?;
+            file_count += 1;
+            if relative.extension().and_then(|value| value.to_str()) == Some("jsonl")
+                && (relative.starts_with("sessions") || relative.starts_with("archived_sessions"))
+            {
+                thread_count += 1;
+            }
+            if file_count % 100 == 0 {
+                progress(format!("Copied {file_count} files"));
+            }
+        }
     }
-    let source_index = session_index::load(&source_root)?;
-    let index = threads
-        .iter()
-        .map(|thread| {
-            let thread_name = source_index
-                .get(&thread.record.id)
-                .and_then(|entry| entry.get("thread_name"))
-                .and_then(serde_json::Value::as_str)
-                .unwrap_or(&thread.record.title);
-            json!({
-                "id": thread.record.id,
-                "thread_name": thread_name,
-                "updated_at": chrono::DateTime::from_timestamp(thread.record.updated_at, 0)
-                    .map(|value| value.to_rfc3339())
-                    .unwrap_or_default()
-            })
-            .to_string()
-        })
-        .collect::<Vec<_>>()
-        .join("\n");
-    fs::write(
-        output.join("session_index.jsonl"),
-        if index.is_empty() {
-            index
-        } else {
-            format!("{index}\n")
-        },
-    )?;
-    progress(format!("Created {}", output.display()));
-    Ok(ExportSummary {
-        output: output.to_string_lossy().into_owned(),
-        thread_count: threads.len(),
-    })
+
+    Ok((file_count, thread_count))
+}
+
+fn is_login_credential_path(relative: &Path) -> bool {
+    if relative.components().count() != 1 {
+        return false;
+    }
+    matches!(
+        relative
+            .file_name()
+            .and_then(|value| value.to_str())
+            .map(str::to_ascii_lowercase)
+            .as_deref(),
+        Some("auth.json") | Some("auth.json.bak") | Some("credentials.json") | Some("tokens.json")
+    )
+}
+
+#[cfg(unix)]
+fn copy_symlink(source: &Path, destination: &Path) -> Result<()> {
+    std::os::unix::fs::symlink(fs::read_link(source)?, destination)?;
+    Ok(())
+}
+
+#[cfg(windows)]
+fn copy_symlink(source: &Path, destination: &Path) -> Result<()> {
+    let target = fs::read_link(source)?;
+    let resolved = source
+        .parent()
+        .unwrap_or_else(|| Path::new(""))
+        .join(&target);
+    if resolved.is_dir() {
+        std::os::windows::fs::symlink_dir(target, destination)?;
+    } else {
+        std::os::windows::fs::symlink_file(target, destination)?;
+    }
+    Ok(())
 }
 
 pub fn plan_directory_import(

@@ -18,7 +18,10 @@
 > [!IMPORTANT]
 > Codex Migrate is an independent community project. It is not affiliated with, endorsed by, or sponsored by OpenAI. “Codex” and other OpenAI marks belong to OpenAI.
 
-Codex Migrate works directly with a copied `.codex/` directory or a minimal `Codex/` backup. It uses rollout JSONL files as the source of truth and can merge selected sessions into an existing local Codex environment.
+Codex Migrate works directly with a copied `.codex/` directory or a legacy
+minimal `Codex/` backup. New backups are complete `.codex/` directory copies.
+The importer uses rollout JSONL files as the source of truth and can merge
+selected sessions into an existing local Codex environment.
 
 ## Screenshots
 
@@ -54,21 +57,26 @@ Codex Migrate works directly with a copied `.codex/` directory or a minimal `Cod
 - Use a native GUI in Chinese or English, following the system language by default.
 - Use the same migration engine from the command line.
 
-## Data boundaries
+## Backup contents
 
-The backup exporter includes:
+The backup exporter copies every file and directory under the selected Codex
+home into:
 
 ```text
-Codex/
-├── sessions/
-├── archived_sessions/
-└── session_index.jsonl
+selected-folder/
+└── .codex/
 ```
 
-It intentionally excludes authentication, Skills, configuration, plugins, logs, caches, device state, and the source database.
+This includes sessions, archived sessions, SQLite databases, Skills,
+configuration, plugins, logs, caches, rollback records, and other contents
+present in the source directory. Root-level login credential files such as
+`auth.json` are intentionally excluded.
 
 > [!WARNING]
-> Rollout and HTML files may contain sensitive conversations, commands, output, images, and local paths. Review them before sharing.
+> Although login credential files are excluded, a complete backup still
+> contains private conversations, commands, output, images, local paths,
+> configuration, and logs. Keep it private and protected. Quit Codex before
+> exporting so database and WAL files are copied consistently.
 
 ## Installation
 
@@ -114,7 +122,7 @@ target/release/codex-migrate-gui
 ## Typical GUI workflow
 
 1. Quit Codex Desktop and all Codex CLI sessions.
-2. Select the old `.codex/`, a minimal `Codex/`, or a parent containing exactly one of them.
+2. Select the old `.codex/`, a legacy minimal `Codex/`, or a parent containing exactly one of them.
 3. Select the projects and sessions to import.
 4. Bind each selected old project path to its new local folder, apply a parent mapping, or choose history-only recovery.
 5. Preview the merge plan.
@@ -151,12 +159,12 @@ Deleting rollback data only removes the selected snapshot directories; it does n
 
 ```bash
 codex-migrate export ~/.codex --output-parent ~/Backups
-codex-migrate scan ~/Backups/Codex
+codex-migrate scan ~/Backups/.codex
 
-codex-migrate import ~/Backups/Codex --dry-run \
+codex-migrate import ~/Backups/.codex --dry-run \
   --map '/Users/alex/Projects=D:/Projects'
 
-codex-migrate import ~/Backups/Codex \
+codex-migrate import ~/Backups/.codex \
   --map '/Users/alex/Projects=D:/Projects'
 
 codex-migrate rebind --codex-home ~/.codex \

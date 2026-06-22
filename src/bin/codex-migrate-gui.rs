@@ -1578,11 +1578,11 @@ impl MigrationApp {
         let zh = self.chinese();
         page_title(
             ui,
-            tr(zh, "导出精简 Codex 备份", "Export compact Codex backup"),
+            tr(zh, "导出完整 Codex 备份", "Export full Codex backup"),
             tr(
                 zh,
-                "在所选父目录中创建结构兼容的 Codex/ 文件夹，不包含认证和设备数据。",
-                "Create a compatible Codex/ folder without authentication or device data.",
+                "将本机 .codex 文件夹的全部内容复制到所选位置，保留数据库、会话和配置。",
+                "Copy the complete local .codex folder, including databases, sessions, and settings.",
             ),
         );
         card(ui, |ui| {
@@ -1604,8 +1604,8 @@ impl MigrationApp {
                 ui.label(
                     RichText::new(tr(
                         zh,
-                        "将创建：所选目录/Codex/",
-                        "Creates: selected folder/Codex/",
+                        "将创建：所选目录/.codex/",
+                        "Creates: selected folder/.codex/",
                     ))
                     .small()
                     .color(MUTED),
@@ -1617,6 +1617,17 @@ impl MigrationApp {
                     }
                 });
             });
+            ui.add_space(12.0);
+            status_message(
+                ui,
+                LineIcon::Warning,
+                WARNING,
+                tr(
+                    zh,
+                    "登录凭据不会导出，但备份仍包含私密对话、配置和日志；请勿公开分享，导出前请关闭 Codex。",
+                    "Login credentials are excluded, but the backup still contains private conversations, settings, and logs. Do not share it publicly, and quit Codex before exporting.",
+                ),
+            );
         });
     }
 

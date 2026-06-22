@@ -98,7 +98,7 @@ pub fn ensure_codex_stopped(codex_home: &Path) -> Result<()> {
     };
     if running {
         anyhow::bail!(
-            "Codex is still running. Close the Codex desktop app and all Codex CLI sessions, then retry the import"
+            "Codex is still running. Close the Codex desktop app and all Codex CLI sessions, then retry"
         );
     }
     Ok(())

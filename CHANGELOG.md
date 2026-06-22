@@ -6,6 +6,10 @@ The project uses semantic versioning where practical.
 
 ## [Unreleased]
 
+- Export backups as complete `.codex` directory copies instead of minimal
+  session-only folders, preserving databases, settings, Skills, logs, caches,
+  and other local contents while excluding root-level login credential files.
+
 ## [1.0.7] - 2026-06-21
 
 - Use a zero-pixel optical text offset on Windows while retaining the existing macOS/Linux alignment.

@@ -13,6 +13,13 @@ fn exports_scans_and_dry_runs_directory_backup() {
     fs::write(source.path().join("auth.json"), "{}").unwrap();
     fs::create_dir_all(source.path().join("skills/example")).unwrap();
     fs::write(source.path().join("skills/example/SKILL.md"), "secret").unwrap();
+    fs::create_dir_all(source.path().join("logs")).unwrap();
+    fs::write(source.path().join("logs/codex.log"), "log entry").unwrap();
+    fs::write(
+        source.path().join("session_index.jsonl"),
+        "{\"id\":\"11111111-2222-3333-4444-555555555555\",\"thread_name\":\"Test thread\"}\n",
+    )
+    .unwrap();
 
     let destination = TempDir::new().unwrap();
     Command::cargo_bin("codex-migrate")
@@ -26,12 +33,19 @@ fn exports_scans_and_dry_runs_directory_backup() {
         .assert()
         .success();
 
-    let backup = destination.path().join("Codex");
+    let backup = destination.path().join(".codex");
     assert!(backup.join("sessions").is_dir());
     assert!(backup.join("session_index.jsonl").is_file());
     assert!(!backup.join("auth.json").exists());
-    assert!(!backup.join("skills").exists());
-    assert!(!backup.join("state_5.sqlite").exists());
+    assert_eq!(
+        fs::read_to_string(backup.join("skills/example/SKILL.md")).unwrap(),
+        "secret"
+    );
+    assert_eq!(
+        fs::read_to_string(backup.join("logs/codex.log")).unwrap(),
+        "log entry"
+    );
+    assert!(backup.join("state_5.sqlite").is_file());
 
     Command::cargo_bin("codex-migrate")
         .unwrap()
