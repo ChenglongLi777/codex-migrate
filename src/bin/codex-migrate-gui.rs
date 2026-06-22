@@ -1604,8 +1604,8 @@ impl MigrationApp {
                 ui.label(
                     RichText::new(tr(
                         zh,
-                        "将创建：所选目录/.codex/",
-                        "Creates: selected folder/.codex/",
+                        "将创建：所选目录/Codex_backup/",
+                        "Creates: selected folder/Codex_backup/",
                     ))
                     .small()
                     .color(MUTED),

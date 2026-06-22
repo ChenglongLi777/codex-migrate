@@ -33,7 +33,7 @@ fn exports_scans_and_dry_runs_directory_backup() {
         .assert()
         .success();
 
-    let backup = destination.path().join(".codex");
+    let backup = destination.path().join("Codex_backup");
     assert!(backup.join("sessions").is_dir());
     assert!(backup.join("session_index.jsonl").is_file());
     assert!(!backup.join("auth.json").exists());

@@ -19,7 +19,8 @@
 > Codex Migrate is an independent community project. It is not affiliated with, endorsed by, or sponsored by OpenAI. “Codex” and other OpenAI marks belong to OpenAI.
 
 Codex Migrate works directly with a copied `.codex/` directory or a legacy
-minimal `Codex/` backup. New backups are complete `.codex/` directory copies.
+minimal `Codex/` backup. New backups are complete copies stored in a visible
+`Codex_backup/` folder.
 The importer uses rollout JSONL files as the source of truth and can merge
 selected sessions into an existing local Codex environment.
 
@@ -64,7 +65,7 @@ home into:
 
 ```text
 selected-folder/
-└── .codex/
+└── Codex_backup/
 ```
 
 This includes sessions, archived sessions, SQLite databases, Skills,
@@ -122,7 +123,7 @@ target/release/codex-migrate-gui
 ## Typical GUI workflow
 
 1. Quit Codex Desktop and all Codex CLI sessions.
-2. Select the old `.codex/`, a legacy minimal `Codex/`, or a parent containing exactly one of them.
+2. Select the old `.codex/`, `Codex_backup/`, a legacy minimal `Codex/`, or a parent containing exactly one of them.
 3. Select the projects and sessions to import.
 4. Bind each selected old project path to its new local folder, apply a parent mapping, or choose history-only recovery.
 5. Preview the merge plan.
@@ -159,12 +160,12 @@ Deleting rollback data only removes the selected snapshot directories; it does n
 
 ```bash
 codex-migrate export ~/.codex --output-parent ~/Backups
-codex-migrate scan ~/Backups/.codex
+codex-migrate scan ~/Backups/Codex_backup
 
-codex-migrate import ~/Backups/.codex --dry-run \
+codex-migrate import ~/Backups/Codex_backup --dry-run \
   --map '/Users/alex/Projects=D:/Projects'
 
-codex-migrate import ~/Backups/.codex \
+codex-migrate import ~/Backups/Codex_backup \
   --map '/Users/alex/Projects=D:/Projects'
 
 codex-migrate rebind --codex-home ~/.codex \

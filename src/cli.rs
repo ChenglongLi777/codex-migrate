@@ -103,7 +103,7 @@ pub fn run(cli: Cli) -> Result<()> {
         Commands::Export(args) => {
             let summary = operations::export_directory(&args.source, &args.output_parent, |_| {})?;
             println!(
-                "backed up the complete .codex directory with {} session file(s) to {}",
+                "backed up the complete Codex directory with {} session file(s) to {}",
                 summary.thread_count, summary.output
             );
         }

@@ -9,6 +9,7 @@ The project uses semantic versioning where practical.
 - Export backups as complete `.codex` directory copies instead of minimal
   session-only folders, preserving databases, settings, Skills, logs, caches,
   and other local contents while excluding root-level login credential files.
+- Name exported folders `Codex_backup` so they remain visible on macOS and Linux.
 
 ## [1.0.7] - 2026-06-21
 

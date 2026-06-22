@@ -59,7 +59,7 @@ pub fn resolve_codex_root(selected: &Path) -> Result<PathBuf> {
     if is_codex_root(selected) {
         return Ok(selected.to_path_buf());
     }
-    let candidates = ["Codex", ".codex"]
+    let candidates = ["Codex_backup", "Codex", ".codex"]
         .into_iter()
         .map(|name| selected.join(name))
         .filter(|path| is_codex_root(path))
@@ -67,11 +67,11 @@ pub fn resolve_codex_root(selected: &Path) -> Result<PathBuf> {
     match candidates.as_slice() {
         [only] => Ok(only.clone()),
         [] => Err(anyhow!(
-            "{} is not a Codex folder and contains no Codex/.codex child",
+            "{} is not a Codex folder and contains no Codex_backup/Codex/.codex child",
             selected.display()
         )),
         _ => Err(anyhow!(
-            "{} contains both Codex and .codex; select the intended folder directly",
+            "{} contains multiple Codex backup folders; select the intended folder directly",
             selected.display()
         )),
     }
@@ -139,7 +139,7 @@ pub fn export_directory(
         ));
     }
 
-    let output = output_parent.join(".codex");
+    let output = output_parent.join("Codex_backup");
     if output.exists() {
         return Err(anyhow!(
             "{} already exists; choose another parent folder or remove the existing backup",
@@ -148,7 +148,7 @@ pub fn export_directory(
     }
 
     let staging = output_parent.join(format!(
-        ".codex.exporting-{}",
+        ".Codex_backup.exporting-{}",
         uuid::Uuid::new_v4().simple()
     ));
     progress(format!(
