@@ -1,4 +1,5 @@
 use assert_cmd::Command;
+use codex_migrate::desktop_state::local_project_id;
 use codex_migrate::path_mapper::normalize;
 use rusqlite::Connection;
 use serde_json::json;
@@ -388,12 +389,25 @@ fn repeated_import_repairs_visibility_and_registers_project() {
             .is_some_and(
                 |path| normalize(path) == normalize(mapped_project.to_string_lossy().as_ref())
             )));
+        let mapped_project_text = mapped_project.to_string_lossy();
+        let project_id = local_project_id(&mapped_project_text);
+        assert_eq!(state["local-projects"][&project_id]["name"], "Test project");
+        assert_eq!(
+            normalize(
+                state["local-projects"][&project_id]["rootPaths"][0]
+                    .as_str()
+                    .unwrap()
+            ),
+            normalize(&mapped_project_text)
+        );
         let current_order = state["project-order"].as_array().unwrap();
-        assert!(current_order.iter().any(|value| value
-            .as_str()
-            .is_some_and(
-                |path| normalize(path) == normalize(mapped_project.to_string_lossy().as_ref())
-            )));
+        assert!(current_order
+            .iter()
+            .any(|value| value.as_str() == Some(project_id.as_str())));
+        assert_eq!(
+            state["thread-project-assignments"][id]["projectId"],
+            project_id
+        );
         let session_index = fs::read_to_string(target.path().join("session_index.jsonl")).unwrap();
         let imported_index_entry = session_index
             .lines()
@@ -451,6 +465,30 @@ fn create_codex_home(home: &Path, id: &str) {
                    '/old/project/demo', 'Test thread', '{}', 'on-request',
                    '0.142.0', 'hello', 0)",
         rusqlite::params![id, rollout.to_string_lossy()],
+    )
+    .unwrap();
+    fs::write(
+        home.join(".codex-global-state.json"),
+        serde_json::to_vec(&json!({
+            "local-projects": {
+                "local-source": {
+                    "id": "local-source",
+                    "name": "Test project",
+                    "rootPaths": ["/old/project/demo"],
+                    "createdAt": 1781841600000_i64,
+                    "updatedAt": 1781841602000_i64
+                }
+            },
+            "thread-project-assignments": {
+                (id): {
+                    "projectKind": "local",
+                    "projectId": "local-source",
+                    "cwd": "/old/project/demo",
+                    "pendingCoreUpdate": false
+                }
+            }
+        }))
+        .unwrap(),
     )
     .unwrap();
 }
