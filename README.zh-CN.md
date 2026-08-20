@@ -49,6 +49,7 @@ Codex Migrate 可以直接读取旧设备复制出来的 `.codex/`，也兼容�
 - 支持 macOS、Windows、Linux 和 WSL 之间迁移活动及归档会话。
 - 按项目和会话单独选择要导入的内容。
 - 将旧设备项目路径映射到新设备的真实文件夹。
+- 保留 Codex Desktop 项目名称，并将导入会话归入映射后的项目。
 - 通过父目录映射批量匹配多个项目。
 - 修复本机现有 `.codex` 会话中的项目路径。
 - 检测重复、完整前缀版本及同 UUID 分叉冲突。
@@ -107,7 +108,7 @@ macOS 应用打包：
 
 ## GUI 使用流程
 
-1. 完全退出 Codex Desktop 和所有 Codex CLI 会话。
+1. 完全退出 Codex Desktop（Windows 上也要退出后台的 `ChatGPT.exe` 进程）和所有 Codex CLI 会话。
 2. 选择旧设备 `.codex/`、`Codex_backup/`、旧版精简 `Codex/`，或只包含其中一个目录的父目录。
 3. 选择需要导入的项目与会话。
 4. 为每个已选项目绑定新设备文件夹、应用父目录映射，或选择“仅恢复历史”。

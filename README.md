@@ -50,6 +50,7 @@ selected sessions into an existing local Codex environment.
 - Migrate active and archived sessions across macOS, Windows, Linux, and WSL.
 - Select individual projects and sessions before importing.
 - Map old project paths to folders on the new device.
+- Preserve Codex Desktop project names and group imported sessions under their mapped projects.
 - Apply parent-directory mappings to many projects at once.
 - Repair project paths in an existing `.codex` directory.
 - Detect identical, prefix-compatible, and divergent session UUIDs.
@@ -122,7 +123,7 @@ target/release/codex-migrate-gui
 
 ## Typical GUI workflow
 
-1. Quit Codex Desktop and all Codex CLI sessions.
+1. Fully quit Codex Desktop (including its background `ChatGPT.exe` process on Windows) and all Codex CLI sessions.
 2. Select the old `.codex/`, `Codex_backup/`, a legacy minimal `Codex/`, or a parent containing exactly one of them.
 3. Select the projects and sessions to import.
 4. Bind each selected old project path to its new local folder, apply a parent mapping, or choose history-only recovery.

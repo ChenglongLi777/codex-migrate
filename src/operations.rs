@@ -517,13 +517,17 @@ fn execute_import(
                 }
             }
         }
-        let projects = plan
+        let project_threads = plan
             .threads
             .iter()
             .filter(|thread| !thread.history_only)
-            .map(|thread| thread.mapped_cwd.clone())
-            .collect::<std::collections::BTreeSet<_>>();
-        if !projects.is_empty() {
+            .map(|thread| desktop_state::ImportedThreadProject {
+                thread_id: thread.thread.id.clone(),
+                source_cwd: thread.thread.cwd.clone(),
+                target_cwd: thread.mapped_cwd.clone(),
+            })
+            .collect::<Vec<_>>();
+        if !project_threads.is_empty() {
             progress("Registering projects in Codex Desktop".to_owned());
             let state_path = desktop_state::state_path(&environment.codex_home);
             if state_path.exists() {
@@ -531,7 +535,11 @@ fn execute_import(
             } else {
                 transaction.note_created(&state_path)?;
             }
-            desktop_state::register_projects(&state_path, &projects)?;
+            desktop_state::register_projects(
+                &state_path,
+                &desktop_state::state_path(source_root),
+                &project_threads,
+            )?;
         }
         progress("Validating imported threads".to_owned());
         let refreshed = discovery::discover(Some(&environment.codex_home))?;

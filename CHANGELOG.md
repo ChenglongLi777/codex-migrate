@@ -6,6 +6,10 @@ The project uses semantic versioning where practical.
 
 ## [Unreleased]
 
+- Register imported sessions in Codex Desktop's current `local-projects` and
+  `thread-project-assignments` state so mapped projects remain grouped in the sidebar.
+- Detect the Windows `ChatGPT.exe` desktop process before writing Codex state,
+  preventing a still-running app from overwriting migration changes.
 - Export backups as complete `.codex` directory copies instead of minimal
   session-only folders, preserving databases, settings, Skills, logs, caches,
   and other local contents while excluding root-level login credential files.

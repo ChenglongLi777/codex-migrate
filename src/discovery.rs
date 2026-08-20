@@ -76,15 +76,9 @@ pub fn ensure_codex_stopped(codex_home: &Path) -> Result<()> {
         return Ok(());
     }
     let running = if cfg!(target_os = "windows") {
-        Command::new("tasklist")
-            .args(["/FI", "IMAGENAME eq Codex.exe", "/NH"])
-            .output()
-            .ok()
-            .is_some_and(|output| {
-                String::from_utf8_lossy(&output.stdout)
-                    .to_ascii_lowercase()
-                    .contains("codex.exe")
-            })
+        ["ChatGPT.exe", "Codex.exe", "codex-code-mode-host.exe"]
+            .iter()
+            .any(|image_name| windows_image_is_running(image_name))
     } else {
         let desktop_running = Command::new("pgrep")
             .args(["-f", "Codex.app/Contents/MacOS/Codex"])
@@ -98,10 +92,25 @@ pub fn ensure_codex_stopped(codex_home: &Path) -> Result<()> {
     };
     if running {
         anyhow::bail!(
-            "Codex is still running. Close the Codex desktop app and all Codex CLI sessions, then retry"
+            "Codex is still running. Fully quit the desktop app (including the ChatGPT background process on Windows) and all Codex CLI sessions, then retry"
         );
     }
     Ok(())
+}
+
+fn windows_image_is_running(image_name: &str) -> bool {
+    let filter = format!("IMAGENAME eq {image_name}");
+    Command::new("tasklist")
+        .args(["/FI", filter.as_str(), "/NH"])
+        .output()
+        .ok()
+        .is_some_and(|output| tasklist_contains_image(&output.stdout, image_name))
+}
+
+fn tasklist_contains_image(output: &[u8], image_name: &str) -> bool {
+    String::from_utf8_lossy(output)
+        .to_ascii_lowercase()
+        .contains(&image_name.to_ascii_lowercase())
 }
 
 pub fn find_state_db(home: &Path) -> Result<Option<PathBuf>> {
@@ -192,4 +201,17 @@ fn is_wsl() -> bool {
         }
     }
     false
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn detects_current_windows_desktop_process_name() {
+        let output =
+            b"ChatGPT.exe                  21784 Console                    1    120,000 K";
+        assert!(tasklist_contains_image(output, "ChatGPT.exe"));
+        assert!(!tasklist_contains_image(output, "Codex.exe"));
+    }
 }
